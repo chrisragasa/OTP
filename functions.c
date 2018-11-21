@@ -131,7 +131,7 @@ Description: Takes a given string and encrypts it using a key.
 Input: string, key
 Output: N/A
 **************************/
-void encryptMsg(char *message, char *key)
+void encryptText(char *message, char *key)
 {
     int msgInt, keyInt, encryptInt;
     int msgLen = strlen(message);
@@ -166,7 +166,7 @@ Description: Takes a given string and decrypts it using a key.
 Input: string, key
 Output: N/A
 **************************/
-void decryptMsg(char *message, char *key)
+void decryptText(char *message, char *key)
 {
     int msgInt, keyInt, decryptMsg;
     int msgLen = strlen(message);
@@ -190,6 +190,7 @@ void decryptMsg(char *message, char *key)
         keyInt = charToInt(key[i]);
         decryptMsg = (msgInt - keyInt) % 27;
 
+        // Ensure number is 0 or higher
         if (decryptMsg < 0)
         {
             decryptMsg += 27;
@@ -210,10 +211,10 @@ int main(int argc, char *argv[])
     readFile("plaintext1", testmessage);
     printf("1: %s", testmessage);
 
-    encryptMsg(testmessage, key);
+    encryptText(testmessage, key);
     printf("2: %s", testmessage);
 
-    decryptMsg(testmessage, key);
+    decryptText(testmessage, key);
     printf("3: %s", testmessage);
 
     return 0;

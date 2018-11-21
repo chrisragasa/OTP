@@ -4,8 +4,8 @@ OSU - CS 344, Program 4 (OTP)
 11/30/18
 Program Description: 
 
-OTP is a system that will encypt and decrypt information using a one-time pad-like system.
-This program connects to otp_enc_d, and asks it to perform a one-time pad style encryption.
+otp_enc.c accepts a plaintext file, a key, and a port number. This program reads the files
+and sends this information (using sockets) to otp_enc_d.c, where it will be encrypted.
 ********************************/
 
 #include <stdio.h>
@@ -18,15 +18,24 @@ This program connects to otp_enc_d, and asks it to perform a one-time pad style 
 #include <netdb.h>
 #include <time.h>
 
-// Error function used for reporting issues
-void error(const char *msg)
-{
-    perror(msg);
-    exit(0);
-}
+/* Functions */
+void error(const char *msg, int exitVal);
+int isValidFile(char *fileName);
 
 int main(int argc, char *argv[])
 {
+    /* Check for the correct number of arguments */
+    if (argc < 3)
+        error("ERROR: Incorrect number of arguments.\nUSAGE: opt_enc plaintext.txt keygen.txt port_number", 1);
+
+    /* Check that the files are readable and contain valid characters */
+    if (!isValidFile(argv[1]))
+        error(" The file could not be opened.", 1);
+    if (!isValidFile(argv[2]))
+        error(" The file could not be opened.", 1);
+
+    /******************** BEGIN SOCKET STUFF *************************
+     
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
     struct hostent *serverHostInfo;
@@ -82,5 +91,68 @@ int main(int argc, char *argv[])
     printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
 
     close(socketFD); // Close the socket
+    
+    ******************** END SOCKET STUFF *************************/
+
     return 0;
+}
+
+/**************************
+Function: isValidFile
+Description: Parses a given file and validates that the file is readable 
+and that all characters are valid per assignment specs (A-Z or space)
+Input: string
+Output: int
+**************************/
+int isValidFile(char *fileName)
+{
+    static const char characters[28] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ "; // Array of valid characters
+    FILE *file = fopen(fileName, "r");
+    int c;
+
+    if (file == NULL)
+    {
+        fprintf(stderr, "ERROR: %s is not a valid filename.", fileName);
+        return 0; // Error opening file
+    }
+
+    while ((c = fgetc(file)) != EOF)
+    {
+        // Check if the current character is a valid character
+        int isValid = 0;
+        int i;
+
+        for (i = 0; i < 27; i++)
+        {
+            if (c == characters[i] || c == '\n')
+            {
+                isValid = 1; // Valid character was found
+                //fprintf(stdout, "A valid character was found: %c, %d\n", c, isValid);
+            }
+        }
+
+        // If character was not valid, return 0
+        if (isValid == 0)
+        {
+            fprintf(stderr, "ERROR: %s contains invalid characters.", fileName);
+            fclose(file);
+            return 0;
+        }
+    }
+
+    // File contains all valid characters
+    fclose(file);
+    return 1;
+}
+
+/**************************
+Function: error
+Description: A utility function to display error messages with exit values
+Input: error message (string), exit value (int)
+Output: N/A
+**************************/
+void error(const char *msg, int exitVal)
+{
+    fprintf(stderr, "%s\n", msg);
+    exit(exitVal);
 }
