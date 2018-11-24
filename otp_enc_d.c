@@ -28,11 +28,6 @@ void error(const char *msg)
 
 int main(int argc, char *argv[])
 {
-    // Variables we need to set up the server
-    int listenSocketFD, establishedConnectionFD, portNumber, charsRead;
-    socklen_t sizeOfClientInfo;
-    char buffer[256];
-    struct sockaddr_in serverAddress, clientAddress;
 
     // Check the usage and args
     if (argc < 2)
@@ -40,6 +35,12 @@ int main(int argc, char *argv[])
         fprintf(stderr, "USAGE: %s port\n", argv[0]);
         exit(1);
     }
+
+    // Variables we need to set up the server
+    int listenSocketFD, establishedConnectionFD, portNumber, charsRead;
+    socklen_t sizeOfClientInfo;
+    char buffer[256];
+    struct sockaddr_in serverAddress, clientAddress;
 
     // Set up the address struct for this process (the server)
     memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
