@@ -18,15 +18,18 @@ and sends this information (using sockets) to otp_enc_d.c, where it will be encr
 #include <netdb.h>
 #include <time.h>
 
+#define SIZE 150000
+
 /* Functions */
 void error(const char *msg, int exitVal);
 int isValidFile(char *fileName);
+void readFile(char *fileName, char *string);
 
 int main(int argc, char *argv[])
 {
     /* Check for the correct number of arguments */
     if (argc < 3)
-        error("ERROR: Incorrect number of arguments.\nUSAGE: opt_enc plaintext.txt keygen.txt port_number", 1);
+        error("ERROR: Incorrect number of arguments.\nSYNTAX: opt_enc plaintext key port", 1);
 
     /* Check that the files are readable and contain valid characters */
     if (!isValidFile(argv[1]))
@@ -34,8 +37,30 @@ int main(int argc, char *argv[])
     if (!isValidFile(argv[2]))
         error(" The file could not be opened.", 1);
 
+    /* Open the files for reading */
+    FILE *fpText, *fpKey; // File pointers
+    fpText = fopen(argv[1], "r");
+    fpKey = fopen(argv[2], "r");
+
+    /* Check files were opened successfully */
+    if (fpText == NULL)
+        error("ERROR: problem opening plaintext file.", 1);
+    if (fpKey == NULL)
+        error("ERROR: problem opening key file.", 1);
+
+    /* Read files into a string */
+    char stringText[SIZE];
+    char stringKey[SIZE];
+    memset(stringText, '\0', SIZE); // Fill arrays with null terminators and clear garbage
+    memset(stringKey, '\0', SIZE);  // Fill arrays with null terminators and clear garage
+    readFile(argv[1], stringText);  // Copy contents of fpText into stringText
+    readFile(argv[2], stringKey);   // Copy contents of fpKey into stringKey
+
+    printf("%s", stringText);
+    printf("%s", stringKey);
+
     /******************** BEGIN SOCKET STUFF *************************
-     
+
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
     struct hostent *serverHostInfo;
@@ -64,11 +89,11 @@ int main(int argc, char *argv[])
     // Set up the socket
     socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
     if (socketFD < 0)
-        error("CLIENT: ERROR opening socket");
+        error("CLIENT: ERROR opening socket", 1);
 
     // Connect to server
     if (connect(socketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to address
-        error("CLIENT: ERROR connecting");
+        error("CLIENT: ERROR connecting", 1);
 
     // Get input message from user
     printf("CLIENT: Enter text to send to the server, and then hit enter: ");
@@ -79,7 +104,7 @@ int main(int argc, char *argv[])
     // Send message to server
     charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server
     if (charsWritten < 0)
-        error("CLIENT: ERROR writing to socket");
+        error("CLIENT: ERROR writing to socket", 1);
     if (charsWritten < strlen(buffer))
         printf("CLIENT: WARNING: Not all data written to socket!\n");
 
@@ -87,11 +112,11 @@ int main(int argc, char *argv[])
     memset(buffer, '\0', sizeof(buffer));                      // Clear out the buffer again for reuse
     charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); // Read data from the socket, leaving \0 at end
     if (charsRead < 0)
-        error("CLIENT: ERROR reading from socket");
+        error("CLIENT: ERROR reading from socket", 1);
     printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
 
     close(socketFD); // Close the socket
-    
+
     ******************** END SOCKET STUFF *************************/
 
     return 0;
@@ -155,4 +180,33 @@ void error(const char *msg, int exitVal)
 {
     fprintf(stderr, "%s\n", msg);
     exit(exitVal);
+}
+
+/**************************
+Function: readFile
+Description: Copies the contents of a file into a string
+Input: filename (string), string to copy into (string)
+Output: N/A
+Cited: https://stackoverflow.com/questions/174531/how-to-read-the-content-of-a-file-to-a-string-in-c
+**************************/
+void readFile(char *fileName, char *string)
+{
+    char *buffer = 0;
+    long length;
+    FILE *f = fopen(fileName, "rb");
+
+    if (f)
+    {
+        fseek(f, 0, SEEK_END);
+        length = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        buffer = malloc(length);
+        if (buffer)
+        {
+            fread(buffer, 1, length, f);
+        }
+        fclose(f);
+    }
+
+    strcpy(string, buffer);
 }
