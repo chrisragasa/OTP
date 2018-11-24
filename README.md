@@ -12,7 +12,7 @@ $ compileall
 
 ## Usage
 
-#### keygen
+### keygen
 
 `keygen` creates a key file of specified length where the characters in the file generated will be any of the 27 allowed characters (A-Z and a space character). The syntax for `keygen` is as follows:
 
@@ -26,7 +26,7 @@ In the syntax above, _keylength_ is the length of the key file in characters. `k
 $ keygen 256 > mykey
 ```
 
-#### otp_enc_d
+### otp_enc_d
 
 `otp_enc_d` will run in the background as a daemon. Upon execution, `otp_enc_d` must output an error if it cannot be run due to a network error, such as the ports being unavailable. Its function is to perform the actual encoding. This program will listen on a particular port/socket, assigned when it is first ran. The syntax for `otp_enc_d` is as follows:
 
@@ -40,7 +40,7 @@ In the syntax above, _listening_port_ is the port that `otp_enc_d` should listen
 $ otp_enc_d 57171 &
 ```
 
-#### otp_enc
+### otp_enc
 
 `otp_enc` connects to `otp_enc_d` and asks it to perform a one-time pad style encryption. The syntax for `otp_enc` is as follows:
 
@@ -58,10 +58,10 @@ $ otp_enc myplaintext mykey 57171 > myciphertext
 $ otp_enc myplaintext mykey 57171 > myciphertext &
 ```
 
-#### otp_dec_d
+### otp_dec_d
 
 This program performs exactly like `otp_enc_d`, in syntax and usage. In this case, however, `otp_dec_d` will decrypt ciphertext it is given, using the passed-in ciphertext and key. Thus, it returns plaintext again to `otp_dec`.
 
-#### otp_dec
+### otp_dec
 
 Similarly, this program will connect to `otp_dec_d` and will ask it to decrypt ciphertext using a passed-in ciphertext and key, and otherwise performs exactly like `otp_enc`, and must be runnable in the same three ways.
