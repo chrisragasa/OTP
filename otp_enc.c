@@ -52,20 +52,19 @@ int main(int argc, char *argv[])
     char stringText[SIZE];
     char stringKey[SIZE];
     memset(stringText, '\0', SIZE); // Fill arrays with null terminators and clear garbage
-    memset(stringKey, '\0', SIZE);  // Fill arrays with null terminators and clear garage
+    memset(stringKey, '\0', SIZE);  // Fill arrays with null terminators and clear garbage
     readFile(argv[1], stringText);  // Copy contents of fpText into stringText
     readFile(argv[2], stringKey);   // Copy contents of fpKey into stringKey
 
-    printf("%s", stringText);
-    printf("%s", stringKey);
+    //printf("%s", stringText);
+    //printf("%s", stringKey);
 
-    /******************** BEGIN SOCKET STUFF *************************
+    /******************** BEGIN SOCKET STUFF *************************/
 
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
     struct hostent *serverHostInfo;
-    char buffer[256];
-
+    char buffer[SIZE];
     // Check usage & args
     if (argc < 3)
     {
@@ -75,10 +74,11 @@ int main(int argc, char *argv[])
 
     // Set up the server address struct
     memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
-    portNumber = atoi(argv[2]);                                  // Get the port number, convert to an integer from a string
+    portNumber = atoi(argv[3]);                                  // Get the port number, convert to an integer from a string
     serverAddress.sin_family = AF_INET;                          // Create a network-capable socket
     serverAddress.sin_port = htons(portNumber);                  // Store the port number
-    serverHostInfo = gethostbyname(argv[1]);                     // Convert the machine name into a special form of address
+    serverHostInfo = gethostbyname("localhost");
+    //serverHostInfo = gethostbyname(argv[1]);                     // Convert the machine name into a special form of address
     if (serverHostInfo == NULL)
     {
         fprintf(stderr, "CLIENT: ERROR, no such host\n");
@@ -96,10 +96,11 @@ int main(int argc, char *argv[])
         error("CLIENT: ERROR connecting", 1);
 
     // Get input message from user
-    printf("CLIENT: Enter text to send to the server, and then hit enter: ");
-    memset(buffer, '\0', sizeof(buffer));     // Clear out the buffer array
-    fgets(buffer, sizeof(buffer) - 1, stdin); // Get input from the user, trunc to buffer - 1 chars, leaving \0
-    buffer[strcspn(buffer, "\n")] = '\0';     // Remove the trailing \n that fgets adds
+    //printf("CLIENT: Enter text to send to the server, and then hit enter: ");
+    memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array
+    strcpy(buffer, stringText);
+    //fgets(buffer, sizeof(buffer) - 1, stdin); // Get input from the user, trunc to buffer - 1 chars, leaving \0
+    buffer[strcspn(buffer, "\n")] = '\0'; // Remove the trailing \n that fgets adds
 
     // Send message to server
     charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server
@@ -117,7 +118,7 @@ int main(int argc, char *argv[])
 
     close(socketFD); // Close the socket
 
-    ******************** END SOCKET STUFF *************************/
+    /******************** END SOCKET STUFF *************************/
 
     return 0;
 }
