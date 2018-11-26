@@ -24,6 +24,7 @@ and sends this information (using sockets) to otp_enc_d.c, where it will be encr
 void error(const char *msg, int exitVal);
 int isValidFile(char *fileName);
 void readFile(char *fileName, char *string);
+int setupSocket(int portNumber);
 
 int main(int argc, char *argv[])
 {
@@ -56,10 +57,10 @@ int main(int argc, char *argv[])
     readFile(argv[1], stringText);  // Copy contents of fpText into stringText
     readFile(argv[2], stringKey);   // Copy contents of fpKey into stringKey
 
-    //printf("%s", stringText);
-    //printf("%s", stringKey);
+    /* Set up the socket */
+    int socketFD = setupSocket(atoi(argv[3])); // Set up socket using 3rd argument (port no.)
 
-    /******************** BEGIN SOCKET STUFF *************************/
+    /******************** BEGIN SOCKET STUFF *************************
 
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
@@ -100,7 +101,7 @@ int main(int argc, char *argv[])
     memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array
     strcpy(buffer, stringText);
     //fgets(buffer, sizeof(buffer) - 1, stdin); // Get input from the user, trunc to buffer - 1 chars, leaving \0
-    buffer[strcspn(buffer, "\n")] = '\0'; // Remove the trailing \n that fgets adds
+    buffer[strcspn(buffer, "\n")] = '\0'; // Remove the trailing \n character
 
     // Send message to server
     charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server
@@ -118,7 +119,7 @@ int main(int argc, char *argv[])
 
     close(socketFD); // Close the socket
 
-    /******************** END SOCKET STUFF *************************/
+    ******************** END SOCKET STUFF *************************/
 
     return 0;
 }
@@ -210,4 +211,41 @@ void readFile(char *fileName, char *string)
     }
 
     strcpy(string, buffer);
+}
+
+/**************************
+Function: setupSocket
+Description: Socket setup
+Input: portNo (int) - a valid port number that will be used for the socket
+Output: sockFD (int) - int that represents socket file descriptor
+Cited: client.c from OSU Lectures Block 4 and Beej's Guide to Network Programming (https://beej.us/guide/bgnet/html/multi/index.html)
+**************************/
+int setupSocket(int portNumber)
+{
+    int socketFD;                                        // Socket file descriptor
+    struct sockaddr_in serverAddress;                    // Server address struct
+    struct hostent *server = gethostbyname("localhost"); // Get host IP
+    if (server == NULL)
+        error("ERROR: host was not found\n", 2); // error if host not found
+
+    /* Open the socket */
+    socketFD = socket(AF_INET, SOCK_STREAM, 0); // returns a socket descriptor that we can use in later system calls. returns -1 on error.
+    if (socketFD < 0)
+    {
+        error("ERROR: opening socket", 2); // check if the return value was -1 to signify an error
+    }
+
+    /* Set up server address struct */
+    memset((char *)&serverAddress, '\0', sizeof(serverAddress));                             // Clear out the address struct
+    serverAddress.sin_family = AF_INET;                                                      // Create a network-capable socket
+    bcopy((char *)server->h_addr, (char *)&serverAddress.sin_addr.s_addr, server->h_length); // copy serv_addr ip into server->h_addr
+    serverAddress.sin_port = htons(portNumber);                                              // Store the port number
+
+    /* Connect to server */
+    if (connect(socketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
+    {
+        error("ERROR: connecting to socket", 2); // Connection error
+    }
+
+    return socketFD;
 }
