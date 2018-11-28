@@ -26,20 +26,20 @@ int main(int argc, char *argv[])
     if (argc != 2)
     {
         fprintf(stderr, "Error: Incorrect number of arguments\n");
-        exit(0);
+        exit(1);
     }
 
     srand(time(NULL)); // Seed random
 
-    char characters[28] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ "; // Array of characters
+    static const char characters[28] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ "; // Array of characters
 
     // Convert char count argument from string to integer
     int keyLength;
     keyLength = atoi(argv[1]);
 
     // Create the random key
-    int i;
-    for (i = 0; i < keyLength; i++)
+    int i = 0;
+    for (i; i < keyLength; i++)
     {
         int randInt;
         randInt = rand() % 27;                      // Return a random integer between 0 - 26
