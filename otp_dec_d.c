@@ -6,8 +6,8 @@ Program Description:
 
 OTP is a system that will encypt and decrypt information using a one-time pad-like system.
 This program will run in the background and will listen on a particular port/socket assigned
-when it is first run. The function of this program is to perform the encrpytion; to convert
-a plaintext message to a ciphertext using a given key.
+when it is first run. The function of this program is to perform the decryption; to convert
+a ciphertext message to a plaintext message using a given key.
 ********************************/
 
 #include <stdio.h>
@@ -26,13 +26,13 @@ a plaintext message to a ciphertext using a given key.
 /* Functions */
 void error(const char *msg, int exitVal);
 void readFile(char *fileName, char *string);
-void encryptText(char *message, char *key);
+void decryptText(char *message, char *key);
 int charToInt(char ch);
 char intToChar(int integer);
 
 int main(int argc, char *argv[])
 {
-    int portNumber, textLength, keyLength, socketFD, newsocketFD, charsText, charsKey, pid, checkSockSending = 1, checkSockRecieving = 0;
+    int portNumber, textLength, keyLength, socketFD, newsocketFD, charsText, charsKey, pid, checkSockSending = 3, checkSockRecieving = 2;
     struct sockaddr_in serverAddress;
     struct sockaddr_in clientAddress;
     char stringText[SIZE];
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
     /* Check for the correct number of arguments */
     if (argc < 2)
-        error("ERROR: Incorrect number of arguments.\nSYNTAX: otp_enc_d port", 1);
+        error("ERROR: Incorrect number of arguments.\nSYNTAX: otp_dec_d port", 1);
 
     /* Port and Socket Setup */
     socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
         { // I am the child
             /* Port authorization */
             recv(newsocketFD, &checkSockRecieving, sizeof(checkSockRecieving), 0);
-            if (checkSockRecieving == 0)
+            if (checkSockRecieving == 2)
             {
                 send(newsocketFD, &checkSockRecieving, sizeof(checkSockRecieving), 0);
             }
@@ -108,16 +108,16 @@ int main(int argc, char *argv[])
             }
             //printf("%s", stringKey);
 
-            /* Encryption */
-            strcpy(cipherArray, stringText);     // Copy plaintext into cipherArray
-            encryptText(cipherArray, stringKey); // Perform the encryption
+            /* Decryption */
+            strcpy(cipherArray, stringText);     // Copy ciphertext into cipherArray
+            decryptText(cipherArray, stringKey); // Perform the decryption
             //printf("%s", cipherArray);
 
             /* Send encrypted version back to client */
             charsText = send(newsocketFD, cipherArray, SIZE - 1, 0);
             if (charsText < 0)
             {
-                error("ERROR: server can't send encryption to socket", 1);
+                error("ERROR: server can't send plaintext to socket", 1);
             }
             close(newsocketFD); // Close the socket
             close(socketFD);    // Close the socket
@@ -174,19 +174,18 @@ void readFile(char *fileName, char *string)
 }
 
 /**************************
-Function: encryptText
-Description: Takes a given string and encrypts it using a key.
+Function: decryptText
+Description: Takes a given string and decrypts it using a key.
 Input: string, key
 Output: N/A
 **************************/
-void encryptText(char *message, char *key)
+void decryptText(char *message, char *key)
 {
-    int msgInt, keyInt, encryptInt;
+    int msgInt, keyInt, decryptMsg;
     int msgLen = strlen(message);
-    int keyLen = strlen(key);
 
     // Validate that the message is shorter than the key
-    if (keyLen < msgLen)
+    if (strlen(key) < strlen(message))
     {
         fprintf(stderr, "Error (encryptMsg): key length is shorter than message length.\n");
         exit(1);
@@ -202,8 +201,14 @@ void encryptText(char *message, char *key)
         // Perform the encryption for each character
         msgInt = charToInt(message[i]);
         keyInt = charToInt(key[i]);
-        encryptInt = (msgInt + keyInt) % 27;
-        message[i] = intToChar(encryptInt);
+        decryptMsg = (msgInt - keyInt) % 27;
+
+        // Ensure number is 0 or higher
+        if (decryptMsg < 0)
+        {
+            decryptMsg += 27;
+        }
+        message[i] = intToChar(decryptMsg);
     }
     message[i] = '\0'; // Null terminator
     return;

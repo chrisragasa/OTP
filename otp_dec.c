@@ -4,8 +4,8 @@ OSU - CS 344, Program 4 (OTP)
 11/30/18
 Program Description: 
 
-otp_enc.c accepts a plaintext file, a key, and a port number. This program reads the files
-and sends this information (using sockets) to otp_enc_d.c, where it will be encrypted.
+otp_dec.c accepts a plaintext file, a key, and a port number. This program reads the files
+and sends this information (using sockets) to otp_dec_d.c, where it will be decrypted.
 ********************************/
 
 #include <stdio.h>
@@ -29,7 +29,7 @@ int setupSocket(int portNumber);
 
 int main(int argc, char *argv[])
 {
-    int portNumber, textLength, keyLength, socketFD, charsText, charsKey, checkSockSending = 0, checkSockRecieving = 1;
+    int portNumber, textLength, keyLength, socketFD, charsText, charsKey, checkSockSending = 2, checkSockRecieving;
     struct sockaddr_in serverAddress;
     struct hostent *server;
     char stringText[SIZE];          // String holding the plaintext content
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
     /* Check for the correct number of arguments */
     if (argc < 4)
-        error("ERROR: Incorrect number of arguments.\nSYNTAX: opt_enc plaintext key port", 1);
+        error("ERROR: Incorrect number of arguments.\nSYNTAX: opt_dec plaintext key port", 1);
 
     /* Check that the files are readable and contain valid characters */
     if (!isValidFile(argv[1]))
@@ -91,14 +91,14 @@ int main(int argc, char *argv[])
     /* Authorization */
     send(socketFD, &checkSockSending, sizeof(checkSockSending), 0);
     recv(socketFD, &checkSockRecieving, sizeof(checkSockRecieving), 0);
-    if (checkSockRecieving != 0)
+    if (checkSockRecieving != 2)
         error("ERROR: the client tried to connect to the wrong socket", 1);
 
-    /* Sending the plaintext */
+    /* Sending the ciphertext */
     charsText = send(socketFD, stringText, SIZE - 1, 0); // Write information to server
     if (charsText < 0)
     { // If less than 0, then information was not sent
-        error("ERROR: client couldn't write plaintext to the socket", 1);
+        error("ERROR: client couldn't write ciphered text to the socket", 1);
     }
 
     /* Sending the key */
@@ -108,12 +108,12 @@ int main(int argc, char *argv[])
         error("ERROR: client couldn't write key to the socket", 1);
     }
 
-    /* Recieve the ciphered text */
+    /* Recieve the plaintext (decrypted ciphertext) */
     memset(stringText, '\0', SIZE); // Fill arrays with null terminators and clear garbage
     charsText = recv(socketFD, stringText, SIZE - 1, 0);
     if (charsText < 0)
     {
-        error("ERROR: client error reading ciphered text from socket", 1);
+        error("ERROR: client error reading plaintext text from socket", 1);
     }
     printf("%s", stringText);
     close(socketFD);
