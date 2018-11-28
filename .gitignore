@@ -9,3 +9,4 @@ otp_enc_d
 encrypt
 functions
 key
+.nfs*

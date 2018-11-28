@@ -65,8 +65,8 @@ int isValidFile(char *fileName)
 
     if (file == NULL)
     {
-        fprintf(stderr, "Error (validFile): can't open file.");
-        return -1; // Error opening file
+        fprintf(stderr, "ERROR: %s is not a valid filename.", fileName);
+        return 0; // Error opening file
     }
 
     while ((c = fgetc(file)) != EOF)
@@ -87,12 +87,14 @@ int isValidFile(char *fileName)
         // If character was not valid, return 0
         if (isValid == 0)
         {
-            //fprintf(stderr, "Error (function: validFile) - file contains invalid characters.");
+            fprintf(stderr, "ERROR: %s contains invalid characters.", fileName);
+            fclose(file);
             return 0;
         }
     }
 
     // File contains all valid characters
+    fclose(file);
     return 1;
 }
 
