@@ -19,6 +19,7 @@ and sends this information (using sockets) to otp_enc_d.c, where it will be encr
 #include <time.h>
 
 #define h_addr h_addr_list[0]
+#define SIZE 75000
 
 /* Functions */
 void error(const char *msg, int exitVal);
@@ -31,11 +32,11 @@ int main(int argc, char *argv[])
     int portNumber, textLength, keyLength, socketFD, charsText, charsKey, checkSockSending = 0, checkSockRecieving = 1;
     struct sockaddr_in serverAddress;
     struct hostent *server;
-    char stringText[2048];          // String holding the plaintext content
-    char stringKey[2048];           // String holding the key content
+    char stringText[SIZE];          // String holding the plaintext content
+    char stringKey[SIZE];           // String holding the key content
     FILE *fpText, *fpKey;           // File pointers
-    memset(stringText, '\0', 2048); // Fill arrays with null terminators and clear garbage
-    memset(stringKey, '\0', 2048);  // Fill arrays with null terminators and clear garbage
+    memset(stringText, '\0', SIZE); // Fill arrays with null terminators and clear garbage
+    memset(stringKey, '\0', SIZE);  // Fill arrays with null terminators and clear garbage
 
     /* Check for the correct number of arguments */
     if (argc < 3)
@@ -94,12 +95,28 @@ int main(int argc, char *argv[])
         error("ERROR: the client tried to connect to the wrong socket", 1);
 
     /* Sending the plaintext */
-    charsText = send(socketFD, stringText, 2047, 0); // Write information to server
+    charsText = send(socketFD, stringText, SIZE - 1, 0); // Write information to server
     if (charsText < 0)
     { // If less than 0, then information was not sent
         error("ERROR: client couldn't write plaintext to the socket", 1);
     }
 
+    /* Sending the key */
+    charsKey = send(socketFD, stringKey, SIZE - 1, 0);
+    if (charsKey < 0)
+    {
+        error("ERROR: client couldn't write key to the socket", 1);
+    }
+
+    /* Recieve the ciphered text */
+    memset(stringText, '\0', SIZE); // Fill arrays with null terminators and clear garbage
+    charsText = recv(socketFD, stringText, SIZE - 1, 0);
+    if (charsText < 0)
+    {
+        error("ERROR: client error reading ciphered text from socket", 1);
+    }
+    printf("client rec:%s", stringText);
+    close(socketFD);
     return 0;
 }
 

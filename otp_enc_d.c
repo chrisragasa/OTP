@@ -21,25 +21,28 @@ a plaintext message to a ciphertext using a given key.
 #include <time.h>
 
 #define h_addr h_addr_list[0]
-#define SIZE 150000
+#define SIZE 75000
 
 /* Functions */
 void error(const char *msg, int exitVal);
 void readFile(char *fileName, char *string);
+void encryptText(char *message, char *key);
+int charToInt(char ch);
+char intToChar(int integer);
 
 int main(int argc, char *argv[])
 {
     int portNumber, textLength, keyLength, socketFD, newsocketFD, charsText, charsKey, pid, checkSockSending = 1, checkSockRecieving = 0;
     struct sockaddr_in serverAddress;
     struct sockaddr_in clientAddress;
-    char stringText[2048];
-    char stringKey[2048];
-    char cipherArray[2048];
+    char stringText[SIZE];
+    char stringKey[SIZE];
+    char cipherArray[SIZE];
     socklen_t cliLength;
 
-    memset(stringText, '\0', 2048);  // Fill arrays with null terminators and clear garbage
-    memset(stringKey, '\0', 2048);   // Fill arrays with null terminators and clear garbage
-    memset(cipherArray, '\0', 2048); // Fill arrays with null terminators and clear garbage
+    memset(stringText, '\0', SIZE);  // Fill arrays with null terminators and clear garbage
+    memset(stringKey, '\0', SIZE);   // Fill arrays with null terminators and clear garbage
+    memset(cipherArray, '\0', SIZE); // Fill arrays with null terminators and clear garbage
 
     /* Check for the correct number of arguments */
     if (argc < 2)
@@ -90,14 +93,32 @@ int main(int argc, char *argv[])
                 exit(1);
             }
             close(socketFD);
-            charsText = recv(newsocketFD, stringText, 2047, 0); //read the text data from otp_enc
 
-            printf("fuck: %s", stringText);
+            /* Recieve the files */
+            charsText = recv(newsocketFD, stringText, SIZE - 1, 0); //read the text data from otp_enc
+            if (charsText < 0)
+            {
+                error("ERROR: server can't read plaintext from the socket", 1);
+            }
+            printf("%s", stringText);
+            charsKey = recv(newsocketFD, stringKey, SIZE - 1, 0); // read buffer data from otp_enc
+            if (charsKey < 0)
+            {
+                error("ERROR: server can't read key from the socket", 1);
+            }
+            printf("%s", stringKey);
 
-            /* TO-DO Encryption */
+            /* Encryption */
+            strcpy(cipherArray, stringText);     // Copy plaintext into cipherArray
+            encryptText(cipherArray, stringKey); // Perform the encryption
+            printf("%s", cipherArray);
 
-            /* TO-DO Encryption */
-
+            /* Send encrypted version back to client */
+            charsText = send(newsocketFD, cipherArray, SIZE - 1, 0);
+            if (charsText < 0)
+            {
+                error("ERROR: server can't send encryption to socket", 1);
+            }
             close(newsocketFD); // Close the socket
             close(socketFD);    // Close the socket
             exit(0);            // Child dies
@@ -150,4 +171,82 @@ void readFile(char *fileName, char *string)
     }
 
     strcpy(string, buffer);
+}
+
+/**************************
+Function: encryptMsg
+Description: Takes a given string and encrypts it using a key.
+Input: string, key
+Output: N/A
+**************************/
+void encryptText(char *message, char *key)
+{
+    int msgInt, keyInt, encryptInt;
+    int msgLen = strlen(message);
+
+    // Validate that the message is shorter than the key
+    if (strlen(key) < strlen(message))
+    {
+        fprintf(stderr, "Error (encryptMsg): key length is shorter than message length.\n");
+        exit(1);
+    }
+
+    // Encrypt the message using the key
+    int i;
+    for (i = 0; i < msgLen; i++)
+    {
+        if (message[i] == '\n')
+            return; // Check for new line character
+
+        // Perform the encryption for each character
+        msgInt = charToInt(message[i]);
+        keyInt = charToInt(key[i]);
+        encryptInt = (msgInt + keyInt) % 27;
+        message[i] = intToChar(encryptInt);
+    }
+    message[i] = '\0'; // Null terminator
+    return;
+}
+
+/**************************
+Function: charToInt
+Description: For use with encryption. Converts a given character to its integer equivalent.
+Input: character
+Output: integer
+**************************/
+int charToInt(char ch)
+{
+    static const char characters[28] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ "; // Array of characters
+
+    // Find a character match
+    int i;
+    for (i = 0; i < 27; i++)
+    {
+        if (ch == characters[i])
+        {
+            return i;
+        }
+    }
+
+    // No character was found
+    return -1;
+}
+
+/**************************
+Function: intToChar
+Description: For use with encryption. Converts a given integer to its character equivalent.
+Input: integer
+Output: character
+**************************/
+char intToChar(int integer)
+{
+    static const char characters[28] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ "; // Array of characters
+
+    // Check for a valid integer
+    if (integer < 0 || integer > 26)
+    {
+        return '$'; // Not a valid integer, return garbage character
+    }
+
+    return characters[integer];
 }
