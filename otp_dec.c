@@ -31,7 +31,7 @@ void removeToken(char *buffer);
 
 int main(int argc, char *argv[])
 {
-    int portNumber, textLength, keyLength, socketFD, mintextLength, minkeyLength, r, charsText, charsKey, checkSockSending = 2, checkSockRecieving;
+    int portNumber, textLength, keyLength, socketFD, bytesSent, mintextLength, minkeyLength, r, charsText, charsKey, checkSockSending = 2, checkSockRecieving;
     struct sockaddr_in serverAddress;
     struct hostent *server;
     char stringText[SIZE]; // String holding the plaintext content
@@ -100,18 +100,34 @@ int main(int argc, char *argv[])
 
     /* Sending the plaintext */
     appendToken(stringText);                             // Add the token
+    bytesSent = 0;                                       // Keep track of bytes sent
     charsText = send(socketFD, stringText, SIZE - 1, 0); // Write information to server
+    bytesSent = bytesSent + charsText;                   // Keep track of bytes sent
     if (charsText < 0)
     { // If less than 0, then information was not sent
         error("ERROR: client couldn't write plaintext to the socket", 1);
     }
+    // While the total amount of bytes sent does not equal the size of the message
+    while (bytesSent < SIZE - 1)
+    {
+        charsText = send(socketFD, &stringText[bytesSent], SIZE - (bytesSent - 1), 0); // Send the bytes that haven't been sent yet
+        bytesSent = bytesSent + charsText;                                             // Keep track of bytes sent
+    }
 
     /* Sending the key */
     appendToken(stringKey);                            // Add the token
+    bytesSent = 0;                                     // Keep track of bytes sent
     charsKey = send(socketFD, stringKey, SIZE - 1, 0); // Write information to server
+    bytesSent = bytesSent + charsText;                 // Keep track of bytes sent
     if (charsKey < 0)
     { // If less than 0, then information was not sent
         error("ERROR: client couldn't write key to the socket", 1);
+    }
+    // Make sure everything is sent properly
+    while (bytesSent < SIZE - 1)
+    {
+        charsText = send(socketFD, &stringKey[bytesSent], SIZE - (bytesSent - 1), 0); // Send the bytes that haven't been sent yet
+        bytesSent = bytesSent + charsText;                                            // Keep track of bytes sent
     }
 
     /* Recieve the translated ciphertext */
@@ -121,7 +137,7 @@ int main(int argc, char *argv[])
     {
         error("ERROR: client error reading translated ciphertext from socket", 1);
     }
-
+    // Receive until a the terminating token is found
     while (strstr(stringText, "@@") == NULL)
     {
         memset(readBuffer, '\0', sizeof(readBuffer));              // Clear the buffer

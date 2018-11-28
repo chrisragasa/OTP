@@ -33,7 +33,7 @@ void appendToken(char *buffer);
 
 int main(int argc, char *argv[])
 {
-    int portNumber, textLength, keyLength, socketFD, newsocketFD, charsText, charsKey, pid, r, checkSockSending = 1, checkSockRecieving = 0;
+    int portNumber, textLength, keyLength, socketFD, newsocketFD, bytesSent, charsText, charsKey, pid, r, checkSockSending = 1, checkSockRecieving = 0;
     struct sockaddr_in serverAddress;
     struct sockaddr_in clientAddress;
     char stringText[SIZE];
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
             {
                 error("ERROR: server can't read key from the socket", 1);
             }
-
+            // Receive until a the terminating token is found
             while (strstr(stringKey, "@@") == NULL)
             {
                 memset(readBuffer, '\0', sizeof(readBuffer));                 // Clear the buffer
@@ -148,10 +148,18 @@ int main(int argc, char *argv[])
             encryptText(cipherArray, stringKey); // Perform the encryption
 
             /* Send encrypted version back to client */
+            bytesSent = 0; // Keep track of the bytes sent
             charsText = send(newsocketFD, cipherArray, SIZE - 1, 0);
+            bytesSent = bytesSent + charsText; // Keep track of the bytes sent
             if (charsText < 0)
             {
                 error("ERROR: server can't send encryption to socket", 1);
+            }
+            // While the total amount of bytes sent does not equal the size of the message
+            while (bytesSent < SIZE - 1)
+            {
+                charsText = send(newsocketFD, &cipherArray[bytesSent], SIZE - (bytesSent - 1), 0); // Send the bytes that haven't been sent yet
+                bytesSent = bytesSent + charsText;                                                 // Keep track of the bytes sent
             }
             close(newsocketFD); // Close the socket
             close(socketFD);    // Close the socket
