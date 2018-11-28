@@ -123,7 +123,6 @@ void readFile(char *fileName, char *string)
         }
         fclose(f);
     }
-
     strcpy(string, buffer);
 }
 
@@ -203,21 +202,42 @@ void decryptText(char *message, char *key)
     return;
 }
 
+/**************************
+Function: appendToken
+Description: Takes a given string and concatenates '@@' to it
+Input: string
+Output: N/A
+**************************/
+void appendToken(char *buffer)
+{
+    buffer[strcspn(buffer, "\n")] = 0; // Remove trailing new line
+    strcat(buffer, "@@");              // Append the token
+    strcat(buffer, "\n");              // Add a new line
+}
+
+/**************************
+Function: removeToken
+Description: Takes a given string and concatenates '@@' to it
+Input: string
+Output: N/A
+**************************/
+void removeToken(char *buffer)
+{
+    buffer[strcspn(buffer, "\n")] = 0; // Remove trailing new line
+    buffer[strcspn(buffer, "@@")] = 0; // Append the token
+    strcat(buffer, "\n");              // Add a new line
+}
+
 int main(int argc, char *argv[])
 {
-    char *testmessage = malloc(2048);
-    memset(testmessage, '\0', 2048);
-
-    char key[72] = "ASDFIUWEFNA ASDFH IIOQPPLZASDFJASDFKJASKDFJHASDKFJHASKDFASKDJHFKSDFKSFM";
+    char testmessage[70000];
+    memset(testmessage, '\0', 70000);
 
     readFile("plaintext1", testmessage);
-    printf("1: %s", testmessage);
-
-    encryptText(testmessage, key);
-    printf("2: %s", testmessage);
-
-    decryptText(testmessage, key);
-    printf("3: %s", testmessage);
+    appendToken(testmessage);
+    printf("%s", testmessage);
+    removeToken(testmessage);
+    printf("%s", testmessage);
 
     return 0;
 }

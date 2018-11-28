@@ -26,17 +26,21 @@ void error(const char *msg, int exitVal);
 int isValidFile(char *fileName);
 void readFile(char *fileName, char *string);
 int setupSocket(int portNumber);
+void appendToken(char *buffer);
+void removeToken(char *buffer);
 
 int main(int argc, char *argv[])
 {
-    int portNumber, textLength, keyLength, socketFD, charsText, charsKey, checkSockSending = 0, checkSockRecieving = 1;
+    int portNumber, textLength, keyLength, socketFD, mintextLength, minkeyLength, r, charsText, charsKey, checkSockSending = 0, checkSockRecieving = 1;
     struct sockaddr_in serverAddress;
     struct hostent *server;
-    char stringText[SIZE];          // String holding the plaintext content
-    char stringKey[SIZE];           // String holding the key content
+    char stringText[SIZE]; // String holding the plaintext content
+    char stringKey[SIZE];  // String holding the key content
+    char readBuffer[512];
     FILE *fpText, *fpKey;           // File pointers
     memset(stringText, '\0', SIZE); // Fill arrays with null terminators and clear garbage
     memset(stringKey, '\0', SIZE);  // Fill arrays with null terminators and clear garbage
+    memset(readBuffer, '\0', 512);
 
     /* Check for the correct number of arguments */
     if (argc < 4)
@@ -95,6 +99,7 @@ int main(int argc, char *argv[])
         error("ERROR: the client tried to connect to the wrong socket", 1);
 
     /* Sending the plaintext */
+    appendToken(stringText);                             // Add the token
     charsText = send(socketFD, stringText, SIZE - 1, 0); // Write information to server
     if (charsText < 0)
     { // If less than 0, then information was not sent
@@ -102,9 +107,10 @@ int main(int argc, char *argv[])
     }
 
     /* Sending the key */
-    charsKey = send(socketFD, stringKey, SIZE - 1, 0);
+    appendToken(stringKey);                            // Add the token
+    charsKey = send(socketFD, stringKey, SIZE - 1, 0); // Write information to server
     if (charsKey < 0)
-    {
+    { // If less than 0, then information was not sent
         error("ERROR: client couldn't write key to the socket", 1);
     }
 
@@ -115,6 +121,24 @@ int main(int argc, char *argv[])
     {
         error("ERROR: client error reading ciphered text from socket", 1);
     }
+
+    while (strstr(stringText, "@@") == NULL)
+    {
+        memset(readBuffer, '\0', sizeof(readBuffer));              // Clear the buffer
+        r = recv(socketFD, readBuffer, sizeof(readBuffer) - 1, 0); // Get the next chunk
+        strcat(stringText, readBuffer);                            // Add chunk to what we have so far
+        if (r == -1)
+        {
+            printf("r == -1\n");
+            break;
+        } // Check for errors
+        if (r == 0)
+        {
+            printf("r == 0\n");
+            break;
+        }
+    }
+    removeToken(stringText);
     printf("%s", stringText);
     close(socketFD);
     return 0;
@@ -244,4 +268,30 @@ int setupSocket(int portNumber)
     }
 
     return socketFD;
+}
+
+/**************************
+Function: appendToken
+Description: Takes a given string and concatenates a '@@' token
+Input: string
+Output: N/A
+**************************/
+void appendToken(char *buffer)
+{
+    buffer[strcspn(buffer, "\n")] = 0; // Remove trailing new line
+    strcat(buffer, "@@");              // Append the token
+    strcat(buffer, "\n");              // Add a new line
+}
+
+/**************************
+Function: removeToken
+Description: Takes a given string and removes the '@@' token
+Input: string
+Output: N/A
+**************************/
+void removeToken(char *buffer)
+{
+    buffer[strcspn(buffer, "\n")] = 0; // Remove trailing new line
+    buffer[strcspn(buffer, "@@")] = 0; // Append the token
+    strcat(buffer, "\n");              // Add a new line
 }

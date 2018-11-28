@@ -29,20 +29,23 @@ void readFile(char *fileName, char *string);
 void encryptText(char *message, char *key);
 int charToInt(char ch);
 char intToChar(int integer);
+void appendToken(char *buffer);
 
 int main(int argc, char *argv[])
 {
-    int portNumber, textLength, keyLength, socketFD, newsocketFD, charsText, charsKey, pid, checkSockSending = 1, checkSockRecieving = 0;
+    int portNumber, textLength, keyLength, socketFD, newsocketFD, charsText, charsKey, pid, r, checkSockSending = 1, checkSockRecieving = 0;
     struct sockaddr_in serverAddress;
     struct sockaddr_in clientAddress;
     char stringText[SIZE];
     char stringKey[SIZE];
     char cipherArray[SIZE];
+    char readBuffer[512];
     socklen_t cliLength;
 
     memset(stringText, '\0', SIZE);  // Fill arrays with null terminators and clear garbage
     memset(stringKey, '\0', SIZE);   // Fill arrays with null terminators and clear garbage
     memset(cipherArray, '\0', SIZE); // Fill arrays with null terminators and clear garbage
+    memset(readBuffer, '\0', 512);   // Fill arrays with null terminators and clear garbage
 
     /* Check for the correct number of arguments */
     if (argc < 2)
@@ -100,11 +103,45 @@ int main(int argc, char *argv[])
             {
                 error("ERROR: server can't read plaintext from the socket", 1);
             }
+            while (strstr(stringText, "@@") == NULL)
+            {
+                memset(readBuffer, '\0', sizeof(readBuffer));                 // Clear the buffer
+                r = recv(newsocketFD, readBuffer, sizeof(readBuffer) - 1, 0); // Get the next chunk
+                strcat(stringText, readBuffer);                               // Add chunk to what we have so far
+                if (r == -1)
+                {
+                    printf("r == -1\n");
+                    break;
+                } // Check for errors
+                if (r == 0)
+                {
+                    printf("r == 0\n");
+                    break;
+                }
+            }
+
             //printf("%s", stringText);
             charsKey = recv(newsocketFD, stringKey, SIZE - 1, 0); // read buffer data from otp_enc
             if (charsKey < 0)
             {
                 error("ERROR: server can't read key from the socket", 1);
+            }
+
+            while (strstr(stringKey, "@@") == NULL)
+            {
+                memset(readBuffer, '\0', sizeof(readBuffer));                 // Clear the buffer
+                r = recv(newsocketFD, readBuffer, sizeof(readBuffer) - 1, 0); // Get the next chunk
+                strcat(stringKey, readBuffer);                                // Add chunk to what we have so far
+                if (r == -1)
+                {
+                    printf("r == -1\n");
+                    break;
+                } // Check for errors
+                if (r == 0)
+                {
+                    printf("r == 0\n");
+                    break;
+                }
             }
             //printf("%s", stringKey);
 
@@ -196,8 +233,8 @@ void encryptText(char *message, char *key)
     int i;
     for (i = 0; i < msgLen; i++)
     {
-        if (message[i] == '\n')
-            return; // Check for new line character
+        if (message[i] == '\n' || message[i] == '@')
+            return; // Check for new line character or terminating token
 
         // Perform the encryption for each character
         msgInt = charToInt(message[i]);
@@ -250,4 +287,17 @@ char intToChar(int integer)
     }
 
     return characters[integer];
+}
+
+/**************************
+Function: appendToken
+Description: Takes a given string and concatenates '@@' to it
+Input: string
+Output: N/A
+**************************/
+void appendToken(char *buffer)
+{
+    buffer[strcspn(buffer, "\n")] = 0; // Remove trailing new line
+    strcat(buffer, "@@");              // Append the token
+    strcat(buffer, "\n");              // Add a new line
 }
