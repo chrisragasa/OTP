@@ -309,6 +309,6 @@ Output: N/A
 void removeToken(char *buffer)
 {
     buffer[strcspn(buffer, "\n")] = 0; // Remove trailing new line
-    buffer[strcspn(buffer, "@@")] = 0; // Append the token
+    buffer[strcspn(buffer, "@@")] = 0; // Remove the token
     strcat(buffer, "\n");              // Add a new line
 }
