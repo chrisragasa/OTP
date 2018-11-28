@@ -68,7 +68,7 @@ Similarly, this program will connect to `otp_dec_d` and will ask it to decrypt c
 
 ### p4gradingscript
 
-This is the grading script ran against the program to make sure that it meets all requirements. The syantax for `p4gradingscript` is:
+This is the grading script ran against the program to make sure that it meets all requirements. The syntax for `p4gradingscript` is:
 
 ```bash
 $ ./p4gradingscript PORT1 PORT2 > mytestresults 2>&1
