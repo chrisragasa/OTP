@@ -65,3 +65,11 @@ This program performs exactly like `otp_enc_d`, in syntax and usage. In this cas
 ### otp_dec
 
 Similarly, this program will connect to `otp_dec_d` and will ask it to decrypt ciphertext using a passed-in ciphertext and key, and otherwise performs exactly like `otp_enc`, and must be runnable in the same three ways.
+
+### p4gradingscript
+
+This is the grading script ran against the program to make sure that it meets all requirements. The syantax for `p4gradingscript` is:
+
+```bash
+$ ./p4gradingscript PORT1 PORT2 > mytestresults 2>&1
+```
