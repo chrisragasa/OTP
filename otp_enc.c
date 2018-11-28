@@ -1,88 +1,230 @@
+/*******************************
+Christopher Ragasa
+OSU - CS 344, Program 4 (OTP)
+11/30/18
+Program Description: 
+
+otp_enc.c accepts a plaintext file, a key, and a port number. This program reads the files
+and sends this information (using sockets) to otp_enc_d.c, where it will be encrypted.
+********************************/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <time.h>
+
 #define h_addr h_addr_list[0]
-#include<stdio.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<string.h>
-#include<strings.h>
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<netinet/in.h>
-#include<netdb.h>
 
-void error(char*);
+/* Functions */
+void error(const char *msg, int exitVal);
+int isValidFile(char *fileName);
+void readFile(char *fileName, char *string);
+int setupSocket(int portNumber);
 
-int main(int argc, char * argv[]){
-	int portNo, textLength, keyLength, sockfd, nText, nKey, checkSockSending = 0, checkSockRecieving = 1;
-	struct sockaddr_in serverAddress;
-	struct hostent *server;
-	char textArray[2048];		//array holding text array
-	char keyArray[2048];		//array holding key array
-	FILE *textfp = NULL;		//The text file
-	FILE *keyfp = NULL;			//the key file
+int main(int argc, char *argv[])
+{
+    int portNumber, textLength, keyLength, socketFD, charsText, charsKey, checkSockSending = 0, checkSockRecieving = 1;
+    struct sockaddr_in serverAddress;
+    struct hostent *server;
+    char stringText[2048];          // String holding the plaintext content
+    char stringKey[2048];           // String holding the key content
+    FILE *fpText, *fpKey;           // File pointers
+    memset(stringText, '\0', 2048); // Fill arrays with null terminators and clear garbage
+    memset(stringKey, '\0', 2048);  // Fill arrays with null terminators and clear garbage
 
-	if(argc != 4){				//if there are not enough arguments then error
-		error("You entered an incorrect format try: \"otp_enc <plaintextfile> <keyfile> <port>\"\n");
-	}
-	textfp = fopen(argv[1], "r");	//open the text file in read only session
-	if(textfp == NULL){				//if its null then it didn't open successfully
-		error("Unable to open the text file.\n");
-	}
-	keyfp = fopen(argv[2], "r");	//open the key file in a read only session
-	if(keyfp == NULL){				//if its null then it didn't open successfully
-		error("Unable to open the key file.\n");
-	}
-	while(fgets(textArray, sizeof(textArray), textfp)){
-		textLength = strlen(textArray);		//get the length of the text file
-	}
-	while(fgets(keyArray, sizeof(keyArray), keyfp)){
-		keyLength = strlen(keyArray);		//get the length of the key file
-	}
-	fclose(textfp);							//close the text file
-	fclose(keyfp);							//close the key file
-	if(textLength > keyLength){				//if the text file is not longer than the key error out
-		error("ERROR the key length is less than the text length");
-	}
-	portNo = atoi(argv[3]);						//set the port number
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);	//set the socket
-	if(sockfd < 0){								//if the socket is less than 0 it was not set
-		error("Could not open the socket.");
-	}	   
-	server = gethostbyname("localhost");		//connect to self
-	if(server == NULL){							//if the server is null then its not connected
-		error("ERROR couldn't connect to the server");
-	}	   
-	bzero((char*) &serverAddress, sizeof(serverAddress));	//zero out the server address
-	serverAddress.sin_family = AF_INET;						//set the server address info
-	serverAddress.sin_port = htons(portNo);					//set the server address info
-	bcopy((char*) server->h_addr, (char*) &serverAddress.sin_addr.s_addr, server->h_length);	//copy the server information
-	if(connect(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0){		//check connection to the server
-		printf("Error: could not contact the daemon at port: %d\n", portNo);				//error if could not contact daemon
-		exit(2);																			//exit 2
-	}
-	write(sockfd, &checkSockSending, sizeof(checkSockSending));
-	read(sockfd, &checkSockRecieving, sizeof(checkSockRecieving));
-	if(checkSockRecieving != 0){
-		error("You tried connecting to the wrong socket");
-	}
-	nText = write(sockfd, textArray, 2047);													//write the information to the daemon
-	if(nText < 0){																			//if its less than 0 then the information was not sent
-		error("Error writing the text array to socket");
-	}
-	nKey = write(sockfd, keyArray, 2047);													//send the key to the daemon
-	if(nKey < 0){																			//if it is less than 0 it was not sent
-		error("Error writing the key array to socket");
-	}
-	bzero(textArray, 2047);																	//set the buffer size
-	nText = read(sockfd, textArray, 2047);													//read the ciphered text
-	if(nText < 0){																			//if it is less than 0 it was not read correctly
-		error("Error reading from the socket");
-	}
-	printf("%s\n", textArray);																//print the ciphered text
-	close(sockfd);																			//close the socket
-	return 0;																				//return 0
-}	
+    /* Check for the correct number of arguments */
+    if (argc < 3)
+        error("ERROR: Incorrect number of arguments.\nSYNTAX: opt_enc plaintext key port", 1);
 
-void error(char * error){
-	printf("%s\n", error);																	//print the error
-	exit(1);																				//exit
+    /* Check that the files are readable and contain valid characters */
+    if (!isValidFile(argv[1]))
+        error(" The file could not be opened.", 1);
+    if (!isValidFile(argv[2]))
+        error(" The file could not be opened.", 1);
+
+    /* Open the files */
+    fpText = fopen(argv[1], "r");
+    fpKey = fopen(argv[2], "r");
+
+    /* Check files were opened successfully */
+    if (fpText == NULL)
+        error("ERROR: problem opening plaintext file.", 1);
+    if (fpKey == NULL)
+        error("ERROR: problem opening key file.", 1);
+
+    /* Read plaintext and key files into strings */
+    readFile(argv[1], stringText); // Copy contents of fpText into stringText
+    readFile(argv[2], stringKey);  // Copy contents of fpKey into stringKey
+
+    /* Validate key size is larger than plaintext size */
+    textLength = strlen(stringText);
+    keyLength = strlen(stringKey);
+    if (keyLength < textLength)
+        error("ERROR: key size smaller than plaintext size.", 1); // Error if the key size is smaller than the plaintext size
+
+    /* Port and Socket Setup */
+    portNumber = atoi(argv[3]);                 // Get the port number, convert to an integer from a string
+    socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
+    if (socketFD < 0)
+        error("ERROR: client couldn't open socket", 1); // If socket < 0, then it was not set
+    server = gethostbyname("localhost");                //connect to self
+    if (server == NULL)
+    {
+        error("ERROR: client couldn't connect to the server", 1); //If the server is null, then it is not connected
+    }
+    memset((char *)&serverAddress, '\0', sizeof(serverAddress));                             // Clear out the address struct
+    serverAddress.sin_family = AF_INET;                                                      // Create a network-capable socket
+    serverAddress.sin_port = htons(portNumber);                                              // Store the port number
+    bcopy((char *)server->h_addr, (char *)&serverAddress.sin_addr.s_addr, server->h_length); // Copy the server information
+    if (connect(socketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
+    {                                                                            // Check connection to the server
+        printf("ERROR: could not contact the daemon at port: %d\n", portNumber); // Error if connection to daemon was not successful
+        exit(2);
+    }
+
+    /* Authorization */
+    send(socketFD, &checkSockSending, sizeof(checkSockSending), 0);
+    recv(socketFD, &checkSockRecieving, sizeof(checkSockRecieving), 0);
+    if (checkSockRecieving != 0)
+        error("ERROR: the client tried to connect to the wrong socket", 1);
+
+    /* Sending the plaintext */
+    charsText = send(socketFD, stringText, 2047, 0); // Write information to server
+    if (charsText < 0)
+    { // If less than 0, then information was not sent
+        error("ERROR: client couldn't write plaintext to the socket", 1);
+    }
+
+    return 0;
+}
+
+/**************************
+Function: isValidFile
+Description: Parses a given file and validates that the file is readable 
+and that all characters are valid per assignment specs (A-Z or space)
+Input: string
+Output: int
+**************************/
+int isValidFile(char *fileName)
+{
+    static const char characters[28] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ "; // Array of valid characters
+    FILE *file = fopen(fileName, "r");
+    int c;
+
+    if (file == NULL)
+    {
+        fprintf(stderr, "ERROR: %s is not a valid filename.", fileName);
+        return 0; // Error opening file
+    }
+
+    while ((c = fgetc(file)) != EOF)
+    {
+        // Check if the current character is a valid character
+        int isValid = 0;
+        int i;
+
+        for (i = 0; i < 27; i++)
+        {
+            if (c == characters[i] || c == '\n')
+            {
+                isValid = 1; // Valid character was found
+                //fprintf(stdout, "A valid character was found: %c, %d\n", c, isValid);
+            }
+        }
+
+        // If character was not valid, return 0
+        if (isValid == 0)
+        {
+            fprintf(stderr, "ERROR: %s contains invalid characters.", fileName);
+            fclose(file);
+            return 0;
+        }
+    }
+
+    // File contains all valid characters
+    fclose(file);
+    return 1;
+}
+
+/**************************
+Function: error
+Description: A utility function to display error messages with exit values
+Input: error message (string), exit value (int)
+Output: N/A
+**************************/
+void error(const char *msg, int exitVal)
+{
+    fprintf(stderr, "%s\n", msg);
+    exit(exitVal);
+}
+
+/**************************
+Function: readFile
+Description: Copies the contents of a file into a string
+Input: filename (string), string to copy into (string)
+Output: N/A
+Cited: https://stackoverflow.com/questions/174531/how-to-read-the-content-of-a-file-to-a-string-in-c
+**************************/
+void readFile(char *fileName, char *string)
+{
+    char *buffer = 0;
+    long length;
+    FILE *f = fopen(fileName, "rb");
+
+    if (f)
+    {
+        fseek(f, 0, SEEK_END);
+        length = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        buffer = malloc(length);
+        if (buffer)
+        {
+            fread(buffer, 1, length, f);
+        }
+        fclose(f);
+    }
+
+    strcpy(string, buffer);
+}
+
+/**************************
+Function: setupSocket
+Description: Socket setup
+Input: portNo (int) - a valid port number that will be used for the socket
+Output: sockFD (int) - int that represents socket file descriptor
+Cited: client.c from OSU Lectures Block 4 and Beej's Guide to Network Programming (https://beej.us/guide/bgnet/html/multi/index.html)
+**************************/
+int setupSocket(int portNumber)
+{
+    int socketFD;                                        // Socket file descriptor
+    struct sockaddr_in serverAddress;                    // Server address struct
+    struct hostent *server = gethostbyname("localhost"); // Get host IP
+    if (server == NULL)
+        error("ERROR: host was not found\n", 1); // error if host not found
+
+    /* Open the socket */
+    socketFD = socket(AF_INET, SOCK_STREAM, 0); // returns a socket descriptor that we can use in later system calls. returns -1 on error.
+    if (socketFD < 0)
+    {
+        error("ERROR: opening socket", 1); // check if the return value was -1 to signify an error
+    }
+
+    /* Set up server address struct */
+    memset((char *)&serverAddress, '\0', sizeof(serverAddress));                             // Clear out the address struct
+    serverAddress.sin_family = AF_INET;                                                      // Create a network-capable socket
+    bcopy((char *)server->h_addr, (char *)&serverAddress.sin_addr.s_addr, server->h_length); // copy serv_addr ip into server->h_addr
+    serverAddress.sin_port = htons(portNumber);                                              // Store the port number
+
+    /* Connect to server */
+    if (connect(socketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
+    {
+        error("ERROR: connecting to socket", 1); // Connection error
+    }
+
+    return socketFD;
 }
