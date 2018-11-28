@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
             charsText = recv(newsocketFD, stringText, SIZE - 1, 0); //read the text data from otp_enc
             if (charsText < 0)
             {
-                error("ERROR: server can't read plaintext from the socket", 1);
+                error("ERROR: server can't read ciphertext from the socket", 1);
             }
             while (strstr(stringText, "@@") == NULL)
             {
@@ -120,8 +120,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            //printf("%s", stringText);
-            charsKey = recv(newsocketFD, stringKey, SIZE - 1, 0); // read buffer data from otp_enc
+            charsKey = recv(newsocketFD, stringKey, SIZE - 1, 0); // read buffer data from otp_dec
             if (charsKey < 0)
             {
                 error("ERROR: server can't read key from the socket", 1);
@@ -143,18 +142,16 @@ int main(int argc, char *argv[])
                     break;
                 }
             }
-            //printf("%s", stringKey);
 
             /* Encryption */
-            strcpy(cipherArray, stringText);     // Copy plaintext into cipherArray
-            decryptText(cipherArray, stringKey); // Perform the encryption
-            //printf("%s", cipherArray);
+            strcpy(cipherArray, stringText);     // Copy ciphertext into cipherArray
+            decryptText(cipherArray, stringKey); // Perform the decryption
 
-            /* Send encrypted version back to client */
+            /* Send decrypted version back to client */
             charsText = send(newsocketFD, cipherArray, SIZE - 1, 0);
             if (charsText < 0)
             {
-                error("ERROR: server can't send encryption to socket", 1);
+                error("ERROR: server can't send plaintext to socket", 1);
             }
             close(newsocketFD); // Close the socket
             close(socketFD);    // Close the socket
@@ -165,7 +162,6 @@ int main(int argc, char *argv[])
             close(newsocketFD); // Parent closes the new socket
         }
     }
-
     return 0;
 }
 

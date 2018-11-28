@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
     textLength = strlen(stringText);
     keyLength = strlen(stringKey);
     if (keyLength < textLength)
-        error("ERROR: key size smaller than plaintext size.", 1); // Error if the key size is smaller than the plaintext size
+        error("ERROR: key size smaller than plaintext size", 1); // Error if the key size is smaller than the plaintext size
 
     /* Port and Socket Setup */
     portNumber = atoi(argv[3]);                 // Get the port number, convert to an integer from a string
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
     send(socketFD, &checkSockSending, sizeof(checkSockSending), 0);
     recv(socketFD, &checkSockRecieving, sizeof(checkSockRecieving), 0);
     if (checkSockRecieving != 2)
-        error("ERROR: the client tried to connect to the wrong socket", 1);
+        error("ERROR: otp_dec can't connect to otp_enc_d", 1);
 
     /* Sending the plaintext */
     appendToken(stringText);                             // Add the token
@@ -114,12 +114,12 @@ int main(int argc, char *argv[])
         error("ERROR: client couldn't write key to the socket", 1);
     }
 
-    /* Recieve the ciphered text */
+    /* Recieve the translated ciphertext */
     memset(stringText, '\0', SIZE); // Fill arrays with null terminators and clear garbage
     charsText = recv(socketFD, stringText, SIZE - 1, 0);
     if (charsText < 0)
     {
-        error("ERROR: client error reading ciphered text from socket", 1);
+        error("ERROR: client error reading translated ciphertext from socket", 1);
     }
 
     while (strstr(stringText, "@@") == NULL)
@@ -174,7 +174,6 @@ int isValidFile(char *fileName)
             if (c == characters[i] || c == '\n')
             {
                 isValid = 1; // Valid character was found
-                //fprintf(stdout, "A valid character was found: %c, %d\n", c, isValid);
             }
         }
 

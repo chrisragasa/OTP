@@ -120,7 +120,6 @@ int main(int argc, char *argv[])
                 }
             }
 
-            //printf("%s", stringText);
             charsKey = recv(newsocketFD, stringKey, SIZE - 1, 0); // read buffer data from otp_enc
             if (charsKey < 0)
             {
@@ -143,12 +142,10 @@ int main(int argc, char *argv[])
                     break;
                 }
             }
-            //printf("%s", stringKey);
 
             /* Encryption */
             strcpy(cipherArray, stringText);     // Copy plaintext into cipherArray
             encryptText(cipherArray, stringKey); // Perform the encryption
-            //printf("%s", cipherArray);
 
             /* Send encrypted version back to client */
             charsText = send(newsocketFD, cipherArray, SIZE - 1, 0);
